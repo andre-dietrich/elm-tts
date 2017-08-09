@@ -12,11 +12,13 @@ module Tts exposing (languages, speak, voices)
 import Json.Decode as Dec
 import Json.Encode as Enc
 import Native.Tts
+import Result exposing (Result)
+import Task exposing (Task)
 
 
 {-| -}
-speak : Maybe String -> String -> String -> Result String String
-speak voice lang text =
+speak : (Result err ok -> msg) -> Maybe String -> String -> String -> Cmd msg
+speak resultToMessage voice lang text =
     let
         v =
             case voice of
@@ -26,7 +28,7 @@ speak voice lang text =
                 Nothing ->
                     Enc.null
     in
-    Native.Tts.speak v lang text
+    Task.attempt resultToMessage (Native.Tts.speak v lang text)
 
 
 {-| -}

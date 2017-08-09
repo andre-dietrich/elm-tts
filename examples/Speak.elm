@@ -10,6 +10,7 @@ type Msg
     = Update String
     | Speak
     | ChangeVoice String
+    | TTS (Result String Never)
 
 
 type alias Model =
@@ -91,24 +92,21 @@ view model =
         ]
 
 
-update : Msg -> Model -> ( Model, Cmd msg )
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         Speak ->
-            ( speak model, Cmd.none )
+            --( model, Task.perform SpeakErr (Tts.speakTask model.voice model.lang model.text) )
+            ( { model | error = Just "started" }, Tts.speak TTS model.voice model.lang model.text )
 
         Update text ->
             ( { model | text = text }, Cmd.none )
 
+        TTS (Result.Ok _) ->
+            ( { model | error = Nothing }, Cmd.none )
+
+        TTS (Result.Err m) ->
+            ( { model | error = Just m }, Cmd.none )
+
         ChangeVoice name ->
             ( { model | voice = Just name }, Cmd.none )
-
-
-speak : Model -> Model
-speak model =
-    case Tts.speak model.voice model.lang model.text of
-        Ok _ ->
-            { model | error = Nothing }
-
-        Err msg ->
-            { model | error = Just msg }

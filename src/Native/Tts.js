@@ -1,25 +1,36 @@
 var _andre_dietrich$elm_tts$Native_Tts = (function () {
-    function speak (voice, lang, text) {
-        try {
-            let tts = new SpeechSynthesisUtterance(text);
-            tts.lang = lang;
-            for(var i=0; i<speechSynthesis.getVoices().length; i++) {
-                if (speechSynthesis.getVoices()[i].name == voice) {
-                    tts.voice = speechSynthesis.getVoices()[i];
-                    break;
+
+    function speak(voice, lang, text)
+    {
+        return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback){
+            try {
+                var tts = new SpeechSynthesisUtterance(text);
+                tts.lang = lang;
+                for(var i=0; i<speechSynthesis.getVoices().length; i++) {
+                    if (speechSynthesis.getVoices()[i].name == voice) {
+                        tts.voice = speechSynthesis.getVoices()[i];
+                        break;
+                    }
                 }
+
+                tts.onend = function () {
+                    if (callback) {
+                        callback(_elm_lang$core$Native_Scheduler.succeed());
+                    }
+                };
+
+                tts.onerror = function (e) {
+                    if (callback) {
+                        callback(_elm_lang$core$Native_Scheduler.fail(e.message));
+                    }
+                };
+
+                speechSynthesis.speak(tts);
+
+            } catch (e) {
+                callback(_elm_lang$core$Native_Scheduler.fail(e.message));
             }
-            speechSynthesis.speak(tts);
-            return {
-                ctor: "Ok",
-                _0: ""
-            };
-        } catch (e) {
-            return {
-                ctor: "Err",
-                _0: e.message
-            };
-        }
+        })
     };
 
     function voices () {
