@@ -1,20 +1,21 @@
-module Tts exposing (..)
+module Tts exposing (languages, speak, voices)
+
+{-| A native Html5 Text-To-Speech wrapper library.
+
+
+# Basic access
+
+@docs speak, voices, languages
+
+-}
 
 import Json.Decode as Dec
 import Json.Encode as Enc
 import Native.Tts
 
 
---type alias Voice =
---    { name : String
---    , lang : String
---    , voiceURI : String
---    , localService : Bool
---    , default : Bool
---    }
-
-
-speak : Maybe String -> String -> String -> Bool
+{-| -}
+speak : Maybe String -> String -> String -> Result String String
 speak voice lang text =
     let
         v =
@@ -24,23 +25,17 @@ speak voice lang text =
 
                 Nothing ->
                     Enc.null
-
-        res =
-            Native.Tts.speak v lang text
     in
-    case res of
-        Ok _ ->
-            True
-
-        Err _ ->
-            False
+    Native.Tts.speak v lang text
 
 
+{-| -}
 voices : Result String (List String)
 voices =
-    decode_string_list (Native.Tts.languages ())
+    decode_string_list (Native.Tts.voices ())
 
 
+{-| -}
 languages : Result String (List String)
 languages =
     decode_string_list (Native.Tts.languages ())
