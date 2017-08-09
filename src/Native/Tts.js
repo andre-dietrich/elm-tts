@@ -1,13 +1,13 @@
 var _andre_dietrich$elm_tts$Native_Tts = (function () {
-    var speak = function(voice, lang, text) {
+    function speak (voice, lang, text) {
         try {
             let tts = new SpeechSynthesisUtterance(text);
             tts.lang = lang;
             for(var i=0; i<speechSynthesis.getVoices().length; i++) {
-              if (speechSynthesis.getVoices()[i].name == voice) {
-                tts.voice = speechSynthesis.getVoices()[i];
-                break;
-              }
+                if (speechSynthesis.getVoices()[i].name == voice) {
+                    tts.voice = speechSynthesis.getVoices()[i];
+                    break;
+                }
             }
             speechSynthesis.speak(tts);
             return {
@@ -22,7 +22,7 @@ var _andre_dietrich$elm_tts$Native_Tts = (function () {
         }
     };
 
-    var voices = function() {
+    function voices () {
         try {
             let name_list = [];
             let voice_list = speechSynthesis.getVoices();
@@ -43,7 +43,7 @@ var _andre_dietrich$elm_tts$Native_Tts = (function () {
         }
     };
 
-    var languages = function() {
+    function languages () {
         try {
             let lang_list = [];
             let voice_list = speechSynthesis.getVoices();
