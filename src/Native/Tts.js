@@ -33,6 +33,37 @@ var _andre_dietrich$elm_tts$Native_Tts = (function () {
         })
     };
 
+    function listen (continuous, interimResults, lang) {
+        return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback){
+            try {
+                var recognition = new webkitSpeechRecognition();
+                recognition.continuous = continuous;
+                recognition.interimResults = interimResults;
+
+                recognition.lang = lang;
+
+                recognition.onend = function (e) {
+                    if (callback) {
+                        callback(_elm_lang$core$Native_Scheduler.fail("no results"));
+                    }
+                };
+
+                recognition.onresult = function (e) {
+                    // cancel onend handler
+                    recognition.onend = null;
+                    if (callback) {
+                        callback(_elm_lang$core$Native_Scheduler.succeed(e.results[0][0].transcript));
+                    }
+                };
+
+                // start listening
+                recognition.start();
+            } catch (e) {
+                callback(_elm_lang$core$Native_Scheduler.fail(e.message));
+            }
+        });
+    };
+
     function voices () {
         try {
             let name_list = [];
@@ -78,6 +109,7 @@ var _andre_dietrich$elm_tts$Native_Tts = (function () {
 
     return {
         speak: F3(speak),
+        listen: F3(listen),
         voices: voices,
         languages: languages
     };

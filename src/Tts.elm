@@ -1,11 +1,11 @@
-module Tts exposing (languages, speak, voices)
+module Tts exposing (languages, listen, speak, voices)
 
 {-| A native Html5 Text-To-Speech wrapper library.
 
 
 # Basic access
 
-@docs speak, voices, languages
+@docs speak, voices, languages, listen
 
 -}
 
@@ -14,6 +14,11 @@ import Json.Encode as Enc
 import Native.Tts
 import Result exposing (Result)
 import Task exposing (Task)
+
+
+{-| -}
+type alias Recognition =
+    { confidence : Float, transcript : String }
 
 
 {-| -}
@@ -29,6 +34,12 @@ speak resultToMessage voice lang text =
                     Enc.null
     in
     Task.attempt resultToMessage (Native.Tts.speak v lang text)
+
+
+{-| -}
+listen : (Result String String -> msg) -> Bool -> Bool -> String -> Cmd msg
+listen resultToMessage continous interimResults lang =
+    Task.attempt resultToMessage (Native.Tts.listen continous interimResults lang)
 
 
 {-| -}
