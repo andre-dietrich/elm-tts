@@ -1,25 +1,75 @@
 var _andre_dietrich$elm_tts$Native_Tts = (function () {
 
-    function speak(voice, lang, text)
+    var VoiceList = [];
+
+    window.onload = function() {
+        try {
+            VoiceList = speechSynthesis.getVoices();
+            console.log("loaded");
+            if (VoiceList.length == 0)
+                speechSynthesis.onvoiceschanged = function(e) {
+                    // Load the voices into the dropdown
+                    VoiceList = speechSynthesis.getVoices();
+                    // Don't add more options when voiceschanged again
+                    speechSynthesis.onvoiceschanged = null;
+
+                    console.log("voices loaded");
+                };
+        } catch (e) {
+            console.log(e.message);
+        }
+    };
+
+    function speak_with_voice(voice, text)
     {
+        try {
+            var tts = new SpeechSynthesisUtterance(text);
+
+            for(var i=0; i<VoiceList.length; i++) {
+                if (VoiceList[i].name == voice) {
+                    tts.voice = VoiceList[i];
+                    break;
+                }
+            }
+            return _speak(tts);
+        }
+        catch (e) {
+            callback(_elm_lang$core$Native_Scheduler.fail(e.message));
+        }
+    };
+
+    function speak_with_lang(lang, text)
+    {
+        try {
+            var tts = new SpeechSynthesisUtterance(text);
+
+            for(var i=0; i<VoiceList.length; i++) {
+                if (VoiceList[i].lang == lang) {
+                    tts.voice = VoiceList[i];
+                    break;
+                }
+            }
+
+            return _speak(tts);
+        }
+        catch (e) {
+            callback(_elm_lang$core$Native_Scheduler.fail(e.message));
+        }
+    };
+
+    function _speak (tts) {
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback){
             try {
-                var tts = new SpeechSynthesisUtterance(text);
-                tts.lang = lang;
-                for(var i=0; i<speechSynthesis.getVoices().length; i++) {
-                    if (speechSynthesis.getVoices()[i].name == voice) {
-                        tts.voice = speechSynthesis.getVoices()[i];
-                        break;
-                    }
-                }
+                speechSynthesis.cancel();
 
-                tts.onend = function () {
+                tts.onend = function (event) {
+                    console.log("Ende");
                     if (callback) {
                         callback(_elm_lang$core$Native_Scheduler.succeed());
                     }
                 };
 
-                tts.onerror = function (e) {
+                tts.onerror = function (event) {
                     if (callback) {
                         callback(_elm_lang$core$Native_Scheduler.fail(e.message));
                     }
@@ -33,6 +83,24 @@ var _andre_dietrich$elm_tts$Native_Tts = (function () {
         })
     };
 
+    function shut_up () {
+
+        try {
+            if (speechSynthesis.speaking) {
+                speechSynthesis.cancel();
+            }
+            return {
+                ctor: "Ok",
+                _0: null
+            };
+        } catch (e) {
+            return {
+                ctor: "Err",
+                _0: e.message
+            };
+        }
+    };
+
     function listen (continuous, interimResults, lang) {
         return _elm_lang$core$Native_Scheduler.nativeBinding(function(callback){
             try {
@@ -42,13 +110,13 @@ var _andre_dietrich$elm_tts$Native_Tts = (function () {
 
                 recognition.lang = lang;
 
-                recognition.onend = function (e) {
+                recognition.onend = function (event) {
                     if (callback) {
                         callback(_elm_lang$core$Native_Scheduler.fail("no results"));
                     }
                 };
 
-                recognition.onresult = function (e) {
+                recognition.onresult = function (event) {
                     // cancel onend handler
                     recognition.onend = null;
                     if (callback) {
@@ -66,16 +134,16 @@ var _andre_dietrich$elm_tts$Native_Tts = (function () {
 
     function voices () {
         try {
-            let name_list = [];
-            let voice_list = speechSynthesis.getVoices();
+            var nameList = [];
 
-            for (var i=0; i<voice_list.length; i++) {
-                name_list.push (voice_list[i].name);
+            for (var i=0; i<VoiceList.length; i++) {
+                nameList.push ({ name: VoiceList[i].name,
+                                 lang: VoiceList[i].lang });
             }
 
             return {
                 ctor: "Ok",
-                _0: name_list.sort()
+                _0: nameList
             };
         } catch (e) {
             return {
@@ -85,19 +153,22 @@ var _andre_dietrich$elm_tts$Native_Tts = (function () {
         }
     };
 
-    function languages () {
-        try {
-            let lang_list = [];
-            let voice_list = speechSynthesis.getVoices();
 
-            for (var i=0; i<voice_list.length; i++) {
-                lang_list.push (voice_list[i].lang);
+
+    function languages () {
+
+        try {
+            var langList = [];
+
+            for (var i=0; i<VoiceList.length; i++) {
+                langList.push (VoiceList[i].lang);
             }
 
             return {
                 ctor: "Ok",
-                _0: lang_list.sort()
+                _0: langList
             };
+
         } catch (e) {
             return {
                 ctor: "Err",
@@ -108,9 +179,11 @@ var _andre_dietrich$elm_tts$Native_Tts = (function () {
 
 
     return {
-        speak: F3(speak),
+        speak_with_voice: F2(speak_with_voice),
+        speak_with_lang: F2(speak_with_lang),
         listen: F3(listen),
         voices: voices,
+        shut_up: shut_up,
         languages: languages
     };
 })();

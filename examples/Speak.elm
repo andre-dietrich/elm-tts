@@ -9,16 +9,16 @@ import Tts
 type Msg
     = Update String
     | Speak
+    | ShutUp
     | ChangeVoice String
     | TTS (Result String Never)
 
 
 type alias Model =
     { text : String
-    , lang : String
     , voice : Maybe String
-    , error : Maybe String
-    , voices : List String
+    , msg : String
+    , speaking : Bool
     }
 
 
@@ -34,61 +34,47 @@ main =
 
 init : ( Model, Cmd msg )
 init =
-    ( voice_list
-        { text = "Enter some text in here ..."
-        , lang = "en_US"
-        , voice = Nothing
-        , error = Nothing
-        , voices = []
-        }
+    ( { text = "Enter some text in here ..."
+      , voice = Nothing
+      , msg = "status: ok"
+      , speaking = False
+      }
     , Cmd.none
     )
-
-
-voice_list : Model -> Model
-voice_list model =
-    case Tts.voices of
-        Ok list ->
-            { model | voices = list }
-
-        Err msg ->
-            { model | voices = [], error = Just msg }
 
 
 view : Model -> Html Msg
 view model =
     Html.div [ Attr.style [ ( "width", "400px" ) ] ]
-        [ Html.button
-            [ Attr.style [ ( "width", "50%" ) ]
-            , onClick Speak
-            ]
-            [ Html.text "Say It!" ]
+        [ if model.speaking then
+            Html.button
+                [ Attr.style [ ( "width", "50%" ) ], onClick ShutUp ]
+                [ Html.text "ShutUp!" ]
+          else
+            Html.button
+                [ Attr.style [ ( "width", "50%" ) ], onClick Speak ]
+                [ Html.text "Say It!" ]
         , Html.select
-            [ Attr.style [ ( "width", "50%" ) ]
-            , onInput ChangeVoice
-            ]
-            (List.map
-                (\v -> Html.option [ Attr.value v ] [ Html.text v ])
-                model.voices
+            [ Attr.style [ ( "width", "50%" ) ], onInput ChangeVoice ]
+            (case Tts.voices True of
+                Ok list ->
+                    List.map
+                        (\v ->
+                            Html.option [ Attr.value v.name ] [ Html.text (v.name ++ " (" ++ v.lang ++ ")") ]
+                        )
+                        list
+
+                Err msg ->
+                    []
             )
         , Html.br [] []
         , Html.textarea
-            [ Attr.style
-                [ ( "width", "99%" )
-                , ( "height", "100px" )
-                ]
+            [ Attr.style [ ( "width", "99%" ), ( "height", "100px" ) ]
             , Attr.value model.text
             , onInput Update
             ]
             []
-        , Html.text
-            (case model.error of
-                Just err ->
-                    "error: " ++ err
-
-                Nothing ->
-                    "status: ok"
-            )
+        , Html.text model.msg
         ]
 
 
@@ -97,16 +83,36 @@ update msg model =
     case msg of
         Speak ->
             --( model, Task.perform SpeakErr (Tts.speakTask model.voice model.lang model.text) )
-            ( { model | error = Just "started" }, Tts.speak TTS model.voice model.lang model.text )
+            case model.voice of
+                Just name ->
+                    ( { model
+                        | msg = "status: started speaking"
+                        , speaking = True
+                      }
+                    , Tts.speak_with_voice TTS name model.text
+                    )
+
+                Nothing ->
+                    ( { model
+                        | msg = "error: no voice slected"
+                        , speaking = False
+                      }
+                    , Cmd.none
+                    )
+
+        ShutUp ->
+            case Tts.shut_up of
+                _ ->
+                    ( { model | msg = "status: ok", speaking = False }, Cmd.none )
 
         Update text ->
             ( { model | text = text }, Cmd.none )
 
         TTS (Result.Ok _) ->
-            ( { model | error = Nothing }, Cmd.none )
+            ( { model | msg = "status: ok", speaking = False }, Cmd.none )
 
         TTS (Result.Err m) ->
-            ( { model | error = Just m }, Cmd.none )
+            ( { model | msg = "error: " ++ m, speaking = False }, Cmd.none )
 
         ChangeVoice name ->
             ( { model | voice = Just name }, Cmd.none )

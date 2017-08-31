@@ -1,16 +1,15 @@
-module Tts exposing (languages, listen, speak, voices)
+module Tts exposing (Voice, languages, listen, shut_up, speak_with_lang, speak_with_voice, voices)
 
 {-| A native Html5 Text-To-Speech wrapper library.
 
 
 # Basic access
 
-@docs speak, voices, languages, listen
+@docs languages, listen, shut_up, speak_with_voice, speak_with_lang, voices, Voice
 
 -}
 
 import Json.Decode as Dec
-import Json.Encode as Enc
 import Native.Tts
 import Result exposing (Result)
 import Task exposing (Task)
@@ -22,18 +21,20 @@ type alias Recognition =
 
 
 {-| -}
-speak : (Result err ok -> msg) -> Maybe String -> String -> String -> Cmd msg
-speak resultToMessage voice lang text =
-    let
-        v =
-            case voice of
-                Just str ->
-                    Enc.string str
+type alias Voice =
+    { name : String, lang : String }
 
-                Nothing ->
-                    Enc.null
-    in
-    Task.attempt resultToMessage (Native.Tts.speak v lang text)
+
+{-| -}
+speak_with_voice : (Result err ok -> msg) -> String -> String -> Cmd msg
+speak_with_voice resultToMessage voice_name text =
+    Task.attempt resultToMessage (Native.Tts.speak_with_voice voice_name text)
+
+
+{-| -}
+speak_with_lang : (Result err ok -> msg) -> String -> String -> Cmd msg
+speak_with_lang resultToMessage lang text =
+    Task.attempt resultToMessage (Native.Tts.speak_with_lang lang text)
 
 
 {-| -}
@@ -43,20 +44,33 @@ listen resultToMessage continous interimResults lang =
 
 
 {-| -}
-voices : Result String (List String)
-voices =
-    decode_string_list (Native.Tts.voices ())
+shut_up : () -> Result String String
+shut_up _ =
+    Native.Tts.shut_up ()
 
 
 {-| -}
-languages : Result String (List String)
-languages =
-    decode_string_list (Native.Tts.languages ())
+voices : Bool -> Result String (List Voice)
+voices b =
+    case Native.Tts.voices () of
+        Ok list ->
+            list
+                |> Dec.decodeValue
+                    (Dec.list
+                        (Dec.map2 Voice
+                            (Dec.field "name" Dec.string)
+                            (Dec.field "lang" Dec.string)
+                        )
+                    )
+
+        Err msg ->
+            Err msg
 
 
-decode_string_list : Result String Enc.Value -> Result String (List String)
-decode_string_list result =
-    case result of
+{-| -}
+languages : () -> Result String (List String)
+languages _ =
+    case Native.Tts.languages () of
         Ok list ->
             Dec.decodeValue (Dec.list Dec.string) list
 
